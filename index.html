@@ -40,6 +40,7 @@
             var bolas = [];
             var platofin = false;
             var velocidad_perdigon = 7.5;
+            var light;
 
             var maquinaLanzadora1 = new function(){
                 this.tamano = [1.5,15,1.5];
@@ -114,8 +115,8 @@
                 //foco.castShadow = true;
                 //scene.add(foco);
 
-                var light = new THREE.AmbientLight( 0x404040 ); // soft white light
-                light.intensity = 4;
+                light = new THREE.AmbientLight( 0x404040 ); // soft white light
+                light.intensity = 0;
                 scene.add( light );
 
                 // Incluimos la salida del render al elemento html
@@ -667,6 +668,7 @@
                             audio.volume = 0.1;
                             audio.play(); 
                         }, 100);
+                        light.intensity = 4;
                     }else{
                         setTimeout(function(){
                             empezar();
