@@ -1,0 +1,694 @@
+<!DOCTYPE html> 
+<html> 
+    <head> 
+
+        <meta charset=utf-8> 
+        <title> Tiro al Plato </title> 
+        <style> 
+            body { margin: 0; } 
+            canvas { width: 100%; height: 100% } 
+        </style> 
+    </head> 
+
+    <body> 
+        <script src="/libs/three.js"></script> 
+        <script src="/libs/dat.gui.js"></script> 
+        <script src="/libs/TrackballControls.js"></script> 
+        <script src="/libs/OBJLoader.js"></script>
+        <script src="/libs/MTLLoader.js"></script>
+
+        <script>
+            // variables globales
+            var renderer;
+            var scene;
+            var camera;
+            var miReloj;
+            var controlCamara;
+            var step = 1/3600;
+            var inicio = 0;
+            var gravedad = -9.8;
+            var plato;
+            var platoReplica;
+            var moverPlatoTimeout1;
+            var moverPlatoTimeout2;
+            var posicionJugador = [0,1.7/2,-80];
+            var maquinaLanzadora;
+            var plano;
+            var cielo;
+            var jugador;
+            var acertado = false;
+            var disparo1, disparo2, disparofin = false;
+            var bola;
+            var bolas = [];
+            var platofin = false;
+            var velocidad_perdigon = 7.5;
+
+            var maquinaLanzadora1 = new function(){
+                this.tamano = [1.5,15,1.5];
+                this.position = [-80,0,-40];
+                this.name = "maquinaLanzadora1"
+            }
+            var maquinaLanzadora2 = new function(){
+                this.tamano = [2,7,2];
+                this.position = [-50,0,-10];
+                this.name = "maquinaLanzadora2"
+            }
+            var maquinasLanzadoras = [maquinaLanzadora1, maquinaLanzadora2];
+
+            var plato1 = new function(){
+                this.platoInicio = maquinaLanzadora1;
+                this.velocidadInicial = [15,0,0];
+                this.adelanto = [20,0,0,2];
+            }
+
+            var plato2 = new function(){
+                this.platoInicio = maquinaLanzadora2;
+                this.velocidadInicial = [0,0,-10];
+                this.adelanto = [0,0,-13,1];
+            }
+
+            var plato3 = new function(){
+                this.helper = new THREE.Vector3().subVectors(maquinaLanzadora2.position, posicionJugador).normalize();
+                this.platoInicio =  maquinaLanzadora2;
+                this.velocidadInicial = [this.helper.x,this.helper.y+29,this.helper.z-5];
+                this.adelanto = [this.helper.x,this.helper.y+28,this.helper.z-7,1.5];
+            }
+            
+            
+            var platos = [plato3, plato1, plato1, plato2, plato1];
+            
+            function init() {
+                empezar();
+                // Creamos un reloj
+                miReloj = new THREE.Clock();
+
+                // Creamos la escena que contiene todos los objetos, camaras y luces
+                scene = new THREE.Scene();
+
+                // Creamos el objeto render que usaremos para visualizar la escena
+                renderer = new THREE.WebGLRenderer();
+                
+                // Inicializamos el color del fondo y el tamano
+                renderer.setClearColor(0xEEEEEE);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap; // por defecto THREE.PCFShadowMap
+
+                //Creo el suelo con un plano
+                crearPlano();
+
+                //Coloco las máquinas lanzadoras
+                colocarMaquinaLanzadora()
+
+                //Creo el Jugador
+                crearJugador();
+                
+                //Coloco la camara y ajusto sus controles
+                colocarCamara(0,(1.7/2),-80);
+
+                // CREAMOS LOS EJES
+                //var ejes = new THREE.AxisHelper(200);
+                //scene.add(ejes);
+
+                // CREAMOS EL FOCO
+                //var foco = new THREE.SpotLight(0xffffff);
+                //foco.position.set(-160, 60, -40);
+                //foco.castShadow = true;
+                //scene.add(foco);
+
+                var light = new THREE.AmbientLight( 0x404040 ); // soft white light
+                light.intensity = 4;
+                scene.add( light );
+
+                // Incluimos la salida del render al elemento html
+                document.body.appendChild(renderer.domElement);
+
+                // Llamamos a la funcion de visualizacion
+                render();
+                //setTimeout(function(){  }, 3000);
+
+            }
+
+            /**
+             * Funcion para visualizar la escena
+             * El intervalo viene dado por requestAnimationFrame
+             **/
+            function render() {
+
+                renderer.render(scene, camera);
+                // Adaptamos el reloj
+                var delta = miReloj.getDelta();
+                // Adaptamos los controles trackball
+                controlCamara.update(delta);
+ 				
+ 				mirarAlObjeto();
+
+                //actualizarJugador();
+
+                disparar();
+
+                // render utilizando requestAnimationFrame
+                requestAnimationFrame(render); 
+            }
+
+            function disparar(){
+                var inicio, fin;
+                var acertadonum;//Para saber que disparo ha acertado
+                if (scene.getObjectByName( "perdigon150") != undefined || scene.getObjectByName( "perdigon450") != undefined) {
+                    if (disparo1 && !disparo2) {
+                        inicio = 0;
+                        fin = 300;
+                    }else if(disparo1 && disparo2){
+                        inicio = 0;
+                        fin = 600;
+                    }else if (!disparo1 && disparo2){
+                        inicio = 300;
+                        fin = 600;
+                    }
+
+                    for (var i = fin; i >= inicio; i--) {
+                        var perdigon = scene.getObjectByName("perdigon" + String(i));
+                        if (perdigon != undefined){
+                            perdigon.distance = perdigon.position.distanceTo(plato.position);
+                            if (perdigon.distance < 1){
+                                    acertado = true;
+                                    acertadonum = perdigon.name.split("perdigon")[1];
+                            }
+                            perdigon.position.x = perdigon.position.x + velocidad_perdigon * perdigon.vector.x ;
+                            perdigon.position.y = perdigon.position.y + velocidad_perdigon * perdigon.vector.y ;
+                            perdigon.position.z = perdigon.position.z + velocidad_perdigon * perdigon.vector.z ;
+                            //CALCULAR LA DISTANCIA AL OTRO OBJETO Y SI ES MENOS A (X) ENTONCES CALCULAR BOUNDING BOX
+                            if(perdigon.position.distanceTo(platoReplica.position) > perdigon.distance){ 
+                                eliminar_perdigon(perdigon.name.split("perdigon")[1]);
+                            }
+                        }
+                    }
+                }
+                if(acertado){
+                    //console.log("Hit")
+                    if(parseInt(acertadonum) < 300){
+                        setTimeout(function(){ eliminar_perdigones(300)},0);
+                        disparo1 = false;
+                    }else{
+                        setTimeout(function(){ eliminar_perdigones(600)},0);
+                        disparo1, disparo2 = false;
+                    }
+                    if(scene.getObjectByName("plato") && bolas.length == 0){
+                        explotar();
+                    }
+                    for (var i = 0; i < bolas.length; i++) {
+                        bola = bolas[i]
+                        if (bola != undefined){
+                            moverPlato(bola);
+                            if (bola.position.y < 0.2){
+                                scene.remove(bola)
+                                bolas.remove(bola)
+                            }
+                        }
+                   }
+                   if(bolas.length == 0){
+                        acertado = false;
+                        setTimeout(function(){ disparofin = false },2000);
+                    }
+                }
+
+            }
+            /**
+            * Funcion para que la camara sepa a que objeto mirar
+            **/
+            function mirarAlObjeto(){
+                if (plato && !acertado){
+                    moverPlato(plato);
+                    if (platoReplica != undefined){
+                        if(platoReplica.position.y > 0.5){
+                            setTimeout(function(){ moverPlato(platoReplica)}, 200);
+                        }else{
+                            if (!platofin) {
+                                setTimeout(function(){ 
+                                    var audio = new Audio('mp3/error.mp3');
+                                    scene.remove(plato);
+                                    scene.remove(platoReplica)
+                                    plato = undefined;
+                                    platoReplica = undefined;
+                                    platos.shift();
+                                    platofin = false;
+                                    audio.play();
+                                }, 500);
+                                platofin = true;
+                            }
+                        }
+                        if (jugador) {
+                            camera.lookAt(platoReplica.position);
+                            jugador.lookAt(platoReplica.position)
+                        }
+                    }
+                }else if (acertado){
+                    for (var i = 10 - 1; i >= 0; i--) {
+                        bola = scene.getObjectByName("bola" + String(i));
+                        if (bola != undefined){
+                            camera.lookAt(bola.position)
+                            if (platoReplica != undefined){
+                                jugador.lookAt(platoReplica.position)
+                            }
+                            break;
+                        }
+                    }
+
+                }else{
+                    if(platos.length > 0){
+                        if (jugador){
+                            var pos = new THREE.Vector3();
+                            pos.x = platos[0].platoInicio.position[0];
+                            pos.y = platos[0].platoInicio.position[1] + platos[0].platoInicio.tamano[1]-2.25;
+                            pos.z = platos[0].platoInicio.position[2];
+                            camera.lookAt(pos);
+                            jugador.lookAt(pos)
+
+                        }
+                    }else{
+                        if (jugador){
+                            camera.lookAt(maquinaLanzadora.position);
+                            jugador.lookAt(maquinaLanzadora.position)
+                        }
+                    }
+                    
+                }
+            }
+
+            /**
+            * Funcion para crear el plano en la escena
+            *
+            **/
+            function crearPlano(){
+
+                texture = THREE.ImageUtils.loadTexture( "./img/grass.jpg" );
+
+                // assuming you want the texture to repeat in both directions:
+                texture.wrapS = THREE.RepeatWrapping; 
+                texture.wrapT = THREE.RepeatWrapping;
+
+                texture.minFilter = THREE.LinearFilter;
+
+                // how many times to repeat in each direction; the default is (1,1),
+                //   which is probably why your example wasn't working
+                texture.repeat.set( 1, 1 );
+
+                // CREAMOS EL PLANO
+                var geometria = new THREE.PlaneGeometry(400, 400);
+                var material = new THREE.MeshLambertMaterial({ map : texture });
+                //var material = new THREE.MeshLambertMaterial({color: 0xffffff});
+                plano = new THREE.Mesh(geometria, material);
+                plano.receiveShadow = false;
+                plano.material.side = THREE.DoubleSide;
+                // Rotamos y trasladamos el plano
+                plano.rotation.x = -0.5 * Math.PI;
+                plano.position.x = 0;
+                plano.position.y = 0;
+                plano.position.z = 0;
+
+                // Incluimos el plano en la escena
+                scene.add(plano);
+
+                //Ahora creo el cielo
+                texture2 = THREE.ImageUtils.loadTexture( "./img/sky.jpg" );
+
+                // assuming you want the texture to repeat in both directions:
+                texture2.wrapS = THREE.RepeatWrapping; 
+                texture2.wrapT = THREE.RepeatWrapping;
+                texture2.minFilter = THREE.LinearFilter;
+
+                // how many times to repeat in each direction; the default is (1,1),
+                //   which is probably why your example wasn't working
+                texture2.repeat.set( 1,1 );
+
+
+                // CREAMOS EL PLANO
+                var geometria = new THREE.SphereGeometry(400, 500, 500);
+                var material = new THREE.MeshLambertMaterial({ map : texture2 });
+                //var material = new THREE.MeshLambertMaterial({color: 0xffffff});
+                cielo = new THREE.Mesh(geometria, material);
+                cielo.material.side = THREE.BackSide;
+                cielo.receiveShadow = false;
+                
+                cielo.position.x = 0;
+                cielo.position.y = 0;
+                cielo.position.z = 0;
+
+                // Incluimos el plano en la escena
+                scene.add(cielo);
+
+
+            }
+
+            /**
+            * Funcion para crear un plato
+            *
+            **/
+            function crearPlato(){
+                disparo1 = false;
+                disparo2 = false;
+                disparofin = false;
+                if (platos.length > 0) {
+                    // CREAMOS LA ESFERA QUE ES EL SUSTITUTO DEL PLATO
+                    var geometria = new THREE.SphereGeometry(0.15, 20, 20);
+                    var material = new THREE.MeshBasicMaterial({color: 0xff8000});
+                    material.vertexColors = THREE.VertexColors;
+                    plato = new THREE.Mesh(geometria, material);
+                    plato.castShadow = true;
+
+                    // Colocamos la plato en la posicion (20, 4, 2)
+                    plato.position.x = platos[0].platoInicio.position[0];
+                    plato.position.y = platos[0].platoInicio.position[1] + platos[0].platoInicio.tamano[1]-2;
+                    plato.position.z = platos[0].platoInicio.position[2];
+                    plato.name = 'plato';
+                    plato.velocidad = cloneObject(platos[0].velocidadInicial);
+
+                    platoReplica = new Object();
+                    platoReplica.position = new THREE.Vector3();
+                    platoReplica.position.x = platos[0].platoInicio.position[0];
+                    platoReplica.position.y = platos[0].platoInicio.position[1] + platos[0].platoInicio.tamano[1]-2.25;
+                    platoReplica.position.z = platos[0].platoInicio.position[2];
+
+                    platoReplica.velocidad = [platos[0].adelanto[0],platos[0].adelanto[1],platos[0].adelanto[2]];
+                    platoReplica.adelanto = platos[0].adelanto[3];
+
+                    // Incluimos la esfera en la escena
+                    scene.add(plato);
+                }else{
+                    platos = [plato2,plato1,plato3,plato2,plato1,plato3,plato2,plato1,plato3,plato2,plato1,plato3]
+                    console.log("No quedan más platos");
+                }
+                
+            }
+
+             /**
+             * Funcion que controla el tamano y asegura que la camara y el render
+             * se adaptan en el instante correcto
+             **/
+            function moverPlato(plat) {
+                if(plat){
+                    if(plat.name != undefined && plat.name == "bola5"){
+                        //console.log(plat.velocidad)
+                    }
+                }
+                if (plat.position.y > 0.3){
+                    plat.position.y = (plat.position.y + (plat.velocidad[1] * step)/1.5 + ((gravedad *  (step*step))/1.5));
+                    //if (plat.position.y > 0.3){
+                    
+                    //Movimiento del eje Y
+                    if (plat.velocidad[1] < 0){
+                        //console.log(velocidad[1])
+                        plat.velocidad [1] = plat.velocidad [1] + ((gravedad * step)/100)
+                    }else{
+                        plat.velocidad [1] = plat.velocidad [1] + (gravedad * step);
+                        //if (velocidad[1] < 0) {velocidad[1] = -0.5;}
+                    }/**/
+                    //plat.position.y = plat.position.y + velocidad[1] * step;
+                    //Movimiento del eje X
+                    plat.position.x = plat.position.x + plat.velocidad[0] * step;
+                    
+                    //Movimiento del eje Z
+                    plat.position.z = plat.position.z + step * plat.velocidad[2];
+
+                    moverPlatoTimeout1 = setTimeout(function(){ moverPlato(plat) }, (step*10000));
+                }else{
+                    plat.position.y = 0.3;
+                    plat.velocidad [1] = 0;
+
+                    if(plat.velocidad[0] > 0 && plat.velocidad[2]>0){
+                        //Movimiento del eje X
+                        plat.position.x = plat.position.x + step*plat.velocidad[0]
+                        plat.velocidad[0] = plat.velocidad[0] - (step * 100 * plat.velocidad[0]);
+                        
+                        //Movimiento del eje Z
+                        plat.position.z = plat.position.z + plat.velocidad[2]* step;
+                        plat.velocidad[2] = plat.velocidad[2] - (step * 100 * plat.velocidad[2]);
+                    }
+                    //moverPlatoTimeout2 = setTimeout(function(){ plat = undefined; scene.remove(plat)}, step*1000*100000*2);
+
+                }
+            }
+            /**
+             * Funcion que controla el tamano y asegura que la camara y el render
+             * se adaptan en el instante correcto
+             **/
+            function handleResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+
+            function handleKey(e){
+                var event = window.event ? window.event : e;
+
+                switch(event.keyCode) {
+                    case 80:
+                        crearPlato();//Creamos el plato;
+                        break;
+                    default:
+                }
+            }
+
+            function cloneObject(obj) {
+                if (obj === null || typeof obj !== 'object') {
+                    return obj;
+                }
+             
+                var temp = obj.constructor(); // give temp the original obj's constructor
+                for (var key in obj) {
+                    temp[key] = cloneObject(obj[key]);
+                }
+             
+                return temp;
+            }
+            /**
+            * Funcion para colocar y dibujar un jugador en el campo.
+            **/
+            function crearJugador(){
+               
+               var loader = new THREE.ObjectLoader();
+                loader.load('img/shotgun-threejs/shotgun.json', function(object) {
+                    object.position.x = posicionJugador[0];
+                    object.position.y = posicionJugador[1];
+                    object.position.z = posicionJugador[2];
+                    object.rotation.X = Math.PI / 2;
+                    object.scale.set(0.5,0.5,0.5);
+
+                    jugador = object;
+                scene.add(jugador);
+                });
+
+        }
+            /**
+            * Funcion para colocar la cámara.
+            **/
+            function colocarCamara(x, y, z){
+                 // Creamos la camara
+                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000000);
+                // Posicionamos la camara en el centro de la escena
+                camera.position.x = x;
+                camera.position.y = y;
+                camera.position.z = z;
+
+                // Creamos los controles Trackball
+                controlCamara = new THREE.TrackballControls(camera);
+                controlCamara.rotateSpeed = 1.0;
+                controlCamara.zoomSpeed = 1.0;
+                controlCamara.panSpeed = 1.0;
+                controlCamara.staticMoving = true;
+            }
+
+            function colocarMaquinaLanzadora(){
+
+                maquinaLanzadora = platos[0].platoInicio;
+                //colocarUnaMaquinaLanzadora(maquinasLanzadoras[i],('String'+ String(i)));
+                for (var i = maquinasLanzadoras.length - 1; i >= 0; i--){
+                    
+                    colocarUnaMaquinaLanzadora(maquinasLanzadoras[i].position, ('Maquina'+ String(i)));
+                    
+                }
+                
+            }
+
+            function colocarUnaMaquinaLanzadora(position, name){
+
+                var onProgress = function ( xhr ) {
+                    if ( xhr.lengthComputable ) {
+                        var percentComplete = xhr.loaded / xhr.total * 100;
+                        console.log( Math.round(percentComplete, 2) + '% downloaded' );
+                    }
+                };
+                var onError = function ( xhr ) { };
+
+                var mtlLoader = new THREE.MTLLoader();
+                mtlLoader.load( 'img/tree-obj/tree.mtl', function( materials ) {
+                    materials.preload();
+
+                    var objLoader = new THREE.OBJLoader();
+                            objLoader.setMaterials( materials );
+                            objLoader.load( 'img/tree-obj/tree.obj', function ( object ) {
+
+                                object.name = name;
+                                //console.log(name)
+                                object.position.x = position[0];
+                                object.position.y = position[1];
+                                object.position.z = position[2];
+                                //object.rotation.X = Math.PI / 2;
+                                object.scale.set(0.2,0.2,0.2);
+
+                                scene.add( object );
+
+                            });
+                   
+                    });
+            }
+
+            
+            function disparo(){
+                if (platoReplica != undefined && platoReplica.position != undefined && !disparofin){
+                    var plusOrMinus;
+                    var audio = new Audio('mp3/gun_fire.mp3');
+                    var geometry = new THREE.SphereBufferGeometry( 0.01, 32, 32 );
+                    var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
+                    var sphere;
+                    var inicio, fin;
+                    
+                    if (!disparo1 && !disparo2) {
+                        disparo1 = true;
+                        inicio = 0;
+                        fin = 300;
+                    }else if(disparo1 && !disparo2){
+                        disparo2 = true;
+                        inicio = 300;
+                        fin = 600;
+                        disparofin = true;
+                    }else{
+                        inicio = 0;
+                        fin = 0;
+
+                    }
+
+                    for (var i = inicio; i <= fin; i++) {
+                        sphere = new THREE.Mesh( geometry, material );
+                        sphere.name = 'perdigon' + String(i);
+                        sphere.position.x = jugador.position.x;
+                        sphere.position.y = jugador.position.y;
+                        sphere.position.z = jugador.position.z;
+
+                        sphere.BB = undefined;
+                        sphere.distance = undefined;
+
+                        sphere.vector = new THREE.Vector3();
+                        sphere.vector.subVectors(platoReplica.position, sphere.position).normalize();
+
+                        plusOrMinus= Math.random() < 0.5 ? -1 : 1;
+                        sphere.vector.x = sphere.vector.x + plusOrMinus * Math.random()/30;
+                        plusOrMinus= Math.random() < 0.5 ? -1 : 1;
+                        sphere.vector.y = sphere.vector.y + plusOrMinus * Math.random()/30;
+                        plusOrMinus= Math.random() < 0.5 ? -1 : 1;
+                        sphere.vector.z = sphere.vector.z + plusOrMinus * Math.random()/30;
+
+                        scene.add( sphere );
+                        //console.log('Disparo' + String(i))
+                        audio.play();
+                    }
+                }
+            }
+            function eliminar_perdigones(startnum){
+                for (var i = startnum; i >= 0; i--) {
+                        var perdigon = scene.getObjectByName("perdigon" + String(i));
+                        if (perdigon != undefined){
+                            scene.remove(perdigon);
+                        }
+                    }
+            }
+
+            function eliminar_perdigon(i){
+                var perdigon = scene.getObjectByName("perdigon" + String(i));
+                if (perdigon != undefined){
+                    scene.remove(perdigon);
+                }
+            }
+
+            function explotar(){
+               
+                setTimeout(function(){
+                    var audio = new Audio('mp3/ok.mp3');
+                    audio.volume = 0.1;
+                    audio.play(); 
+                }, 100);
+
+
+                var geometria = new THREE.SphereGeometry(0.1, 20, 20);
+                var material = new THREE.MeshBasicMaterial({color: 0xff8000});
+                
+
+                for (var i = 10 - 1; i >= 0; i--) {
+                    bola = new THREE.Mesh(geometria, material);
+                    bola.castShadow = true;
+
+                    bola.position.x = plato.position.x;
+                    bola.position.y = plato.position.y;
+                    bola.position.z = plato.position.z;
+
+                    bola.name = 'bola'+ String(i);
+
+                    bola.velocidad = [(plato.velocidad[0] - Math.random()*5/1*2), (plato.velocidad[1] - Math.random()*20/1*2),(plato.velocidad[2] - Math.random()*5/1*2)];
+
+                    scene.add(bola);
+                    bolas.push(bola);
+                    //console.log(bola.velocidad)
+                    //console.log(bola.position)
+                }
+                scene.remove(plato);
+                scene.remove(platoReplica)
+
+                
+                
+                setTimeout(function(){ 
+                    plato = undefined;
+                    platoReplica = undefined;
+                    platos.shift();
+                }, 3000);
+                setTimeout(function(){ 
+                    for (var i = 10 - 1; i >= 0; i--) {
+                        bola = bolas.shift();
+                        scene.remove(bola)
+                    }
+                }, 4000);
+
+                
+            }
+
+            function empezar(){
+                if(scene != undefined){
+                    if(scene.getObjectByName('Maquina0') != undefined){
+                        setTimeout(function(){
+                            var audio = new Audio('mp3/ok.mp3');
+                            audio.volume = 0.1;
+                            audio.play(); 
+                        }, 100);
+                    }else{
+                        setTimeout(function(){
+                            empezar();
+                        }, 500);
+                    }
+                }else{
+                    setTimeout(function(){
+                            empezar();
+                        }, 500);
+                }
+            }
+
+            // Llama a la funcion init() cuando se carga la ventana 
+            window.onload = init;
+
+            // Llama a la funcion handleResize() cuando se cambia el tamano de la ventana
+            window.addEventListener('resize', handleResize, false);
+            window.addEventListener('keydown', handleKey, false);
+            window.addEventListener('click', disparo, false);
+
+        </script>
+    </body> 
+</html>
