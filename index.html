@@ -12,8 +12,6 @@
 
     <body> 
         <script src="./libs/three.js"></script> 
-        <script src="./libs/dat.gui.js"></script> 
-        <script src="./libs/TrackballControls.js"></script> 
         <script src="./libs/OBJLoader.js"></script>
         <script src="./libs/MTLLoader.js"></script>
 
@@ -139,7 +137,7 @@
                 // Adaptamos el reloj
                 var delta = miReloj.getDelta();
                 // Adaptamos los controles trackball
-                controlCamara.update(delta);
+                //controlCamara.update(delta);
  				
  				mirarAlObjeto();
 
@@ -492,11 +490,11 @@
                 camera.position.z = z;
 
                 // Creamos los controles Trackball
-                controlCamara = new THREE.TrackballControls(camera);
+                /*controlCamara = new THREE.TrackballControls(camera);
                 controlCamara.rotateSpeed = 1.0;
                 controlCamara.zoomSpeed = 1.0;
                 controlCamara.panSpeed = 1.0;
-                controlCamara.staticMoving = true;
+                controlCamara.staticMoving = true;*/
             }
 
             function colocarMaquinaLanzadora(){
