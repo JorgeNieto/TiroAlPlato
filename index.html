@@ -262,12 +262,14 @@
                             pos.z = platos[0].platoInicio.position[2];
                             camera.lookAt(pos);
                             jugador.lookAt(pos)
+                            window.addEventListener('keydown', handleKey, false);
 
                         }
                     }else{
                         if (jugador){
                             camera.lookAt(maquinaLanzadora.position);
                             jugador.lookAt(maquinaLanzadora.position)
+                            window.addEventListener('keydown', handleKey, false);
                         }
                     }
                     
@@ -377,6 +379,7 @@
                     platos = [plato2,plato1,plato1,plato2,plato1,plato1,plato2,plato1,plato2,plato2,plato1,plato2]
                     console.log("No quedan más platos");
                 }
+                window.removeEventListener('keydown', handleKey, false);
                 
             }
 
@@ -686,7 +689,7 @@
 
             // Llama a la funcion handleResize() cuando se cambia el tamano de la ventana
             window.addEventListener('resize', handleResize, false);
-            window.addEventListener('keydown', handleKey, false);
+            //window.removeEventListener('keydown', handleKey, false);
             window.addEventListener('click', disparo, false);
 
         </script>
