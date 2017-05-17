@@ -388,14 +388,10 @@
              * se adaptan en el instante correcto
              **/
             function moverPlato(plat) {
-                if(plat){
-                    if(plat.name != undefined && plat.name == "bola5"){
-                        //console.log(plat.velocidad)
-                    }
-                }
+             
                 if (plat.position.y > 0.3){
                     plat.position.y = (plat.position.y + (plat.velocidad[1] * step)/1.5 + ((gravedad *  (step*step))/1.5));
-                    //if (plat.position.y > 0.3){
+
                     
                     //Movimiento del eje Y
                     if (plat.velocidad[1] < 0){
@@ -403,9 +399,9 @@
                         plat.velocidad [1] = plat.velocidad [1] + ((gravedad * step)/100)
                     }else{
                         plat.velocidad [1] = plat.velocidad [1] + (gravedad * step);
-                        //if (velocidad[1] < 0) {velocidad[1] = -0.5;}
+
                     }/**/
-                    //plat.position.y = plat.position.y + velocidad[1] * step;
+
                     //Movimiento del eje X
                     plat.position.x = plat.position.x + plat.velocidad[0] * step;
                     

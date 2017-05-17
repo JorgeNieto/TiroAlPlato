@@ -295,7 +295,7 @@
                 texture.repeat.set( 1, 1 );
 
                 // CREAMOS EL PLANO
-                var geometria = new THREE.PlaneGeometry(400, 400);
+                var geometria = new THREE.PlaneGeometry(200, 200);
                 var material = new THREE.MeshLambertMaterial({ map : texture });
                 //var material = new THREE.MeshLambertMaterial({color: 0xffffff});
                 plano = new THREE.Mesh(geometria, material);
@@ -324,7 +324,7 @@
 
 
                 // CREAMOS EL PLANO
-                var geometria = new THREE.SphereGeometry(400, 500, 500);
+                var geometria = new THREE.SphereGeometry(200,50, 50);
                 var material = new THREE.MeshLambertMaterial({ map : texture2 });
                 //var material = new THREE.MeshLambertMaterial({color: 0xffffff});
                 cielo = new THREE.Mesh(geometria, material);
@@ -351,7 +351,7 @@
                 disparofin = false;
                 if (platos.length > 0) {
                     // CREAMOS LA ESFERA QUE ES EL SUSTITUTO DEL PLATO
-                    var geometria = new THREE.SphereGeometry(0.15, 20, 20);
+                    var geometria = new THREE.SphereGeometry(0.15, 5, 5);
                     var material = new THREE.MeshBasicMaterial({color: 0xff8000});
                     material.vertexColors = THREE.VertexColors;
                     plato = new THREE.Mesh(geometria, material);
@@ -388,31 +388,25 @@
              * se adaptan en el instante correcto
              **/
             function moverPlato(plat) {
-                if(plat){
-                    if(plat.name != undefined && plat.name == "bola5"){
-                        //console.log(plat.velocidad)
-                    }
-                }
                 if (plat.position.y > 0.3){
                     plat.position.y = (plat.position.y + (plat.velocidad[1] * step)/1.5 + ((gravedad *  (step*step))/1.5));
-                    //if (plat.position.y > 0.3){
-                    
+
                     //Movimiento del eje Y
                     if (plat.velocidad[1] < 0){
                         //console.log(velocidad[1])
                         plat.velocidad [1] = plat.velocidad [1] + ((gravedad * step)/100)
                     }else{
                         plat.velocidad [1] = plat.velocidad [1] + (gravedad * step);
-                        //if (velocidad[1] < 0) {velocidad[1] = -0.5;}
+
                     }/**/
-                    //plat.position.y = plat.position.y + velocidad[1] * step;
+
                     //Movimiento del eje X
                     plat.position.x = plat.position.x + plat.velocidad[0] * step;
                     
                     //Movimiento del eje Z
                     plat.position.z = plat.position.z + step * plat.velocidad[2];
 
-                    moverPlatoTimeout1 = setTimeout(function(){ moverPlato(plat) }, (step*10000));
+                    setTimeout(function(){ moverPlato(plat) }, (step*15000));
                 }else{
                     plat.position.y = 0.3;
                     plat.velocidad [1] = 0;
@@ -426,7 +420,7 @@
                         plat.position.z = plat.position.z + plat.velocidad[2]* step;
                         plat.velocidad[2] = plat.velocidad[2] - (step * 100 * plat.velocidad[2]);
                     }
-                    //moverPlatoTimeout2 = setTimeout(function(){ plat = undefined; scene.remove(plat)}, step*1000*100000*2);
+
 
                 }
             }
@@ -492,13 +486,6 @@
                 camera.position.x = x;
                 camera.position.y = y;
                 camera.position.z = z;
-
-                // Creamos los controles Trackball
-                /*controlCamara = new THREE.TrackballControls(camera);
-                controlCamara.rotateSpeed = 1.0;
-                controlCamara.zoomSpeed = 1.0;
-                controlCamara.panSpeed = 1.0;
-                controlCamara.staticMoving = true;*/
             }
 
             function colocarMaquinaLanzadora(){
@@ -551,7 +538,7 @@
                 if (platoReplica != undefined && platoReplica.position != undefined && !disparofin){
                     var plusOrMinus;
                     var audio = new Audio('mp3/gun_fire.mp3');
-                    var geometry = new THREE.SphereBufferGeometry( 0.01, 32, 32 );
+                    var geometry = new THREE.SphereBufferGeometry( 0.01, 2, 2 );
                     var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
                     var sphere;
                     var inicio, fin;
@@ -622,7 +609,7 @@
                 }, 100);
 
 
-                var geometria = new THREE.SphereGeometry(0.1, 20, 20);
+                var geometria = new THREE.SphereGeometry(0.1, 5, 5);
                 var material = new THREE.MeshBasicMaterial({color: 0xff8000});
                 
 
