@@ -19,6 +19,7 @@
 
         <script>
             // variables globales
+            var perdigones_num = 50;
             var renderer;
             var scene;
             var camera;
@@ -75,7 +76,7 @@
             }
             
             
-            var platos = [plato3, plato1, plato1, plato2, plato1];
+            var platos = [plato2, plato1, plato1, plato2, plato1];
             
             function init() {
                 empezar();
@@ -154,16 +155,17 @@
             function disparar(){
                 var inicio, fin;
                 var acertadonum;//Para saber que disparo ha acertado
-                if (scene.getObjectByName( "perdigon150") != undefined || scene.getObjectByName( "perdigon450") != undefined) {
+                var perd = "Perdigon" + String(perdigones_num)
+                if (scene.getObjectByName( "perdigon0") != undefined || scene.getObjectByName(perd) != undefined) {
                     if (disparo1 && !disparo2) {
                         inicio = 0;
-                        fin = 300;
+                        fin = perdigones_num;
                     }else if(disparo1 && disparo2){
                         inicio = 0;
-                        fin = 600;
+                        fin = perdigones_num * 2;
                     }else if (!disparo1 && disparo2){
-                        inicio = 300;
-                        fin = 600;
+                        inicio = perdigones_num;
+                        fin = perdigones_num*2;
                     }
 
                     for (var i = fin; i >= inicio; i--) {
@@ -375,7 +377,7 @@
                     // Incluimos la esfera en la escena
                     scene.add(plato);
                 }else{
-                    platos = [plato2,plato1,plato3,plato2,plato1,plato3,plato2,plato1,plato3,plato2,plato1,plato3]
+                    platos = [plato2,plato1,plato2,plato2,plato1,plato2,plato2,plato1,plato2,plato2,plato1,plato2]
                     console.log("No quedan más platos");
                 }
                 
@@ -567,11 +569,11 @@
                     if (!disparo1 && !disparo2) {
                         disparo1 = true;
                         inicio = 0;
-                        fin = 300;
+                        fin = perdigones_num;
                     }else if(disparo1 && !disparo2){
                         disparo2 = true;
-                        inicio = 300;
-                        fin = 600;
+                        inicio = perdigones_num;
+                        fin = perdigones_num*2;
                         disparofin = true;
                     }else{
                         inicio = 0;
