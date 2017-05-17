@@ -12,14 +12,11 @@
 
     <body> 
         <script src="./libs/three.js"></script> 
-        <script src="./libs/dat.gui.js"></script> 
-        <script src="./libs/TrackballControls.js"></script> 
         <script src="./libs/OBJLoader.js"></script>
         <script src="./libs/MTLLoader.js"></script>
 
         <script>
             // variables globales
-            var perdigones_num = 50;
             var renderer;
             var scene;
             var camera;
@@ -43,16 +40,17 @@
             var bolas = [];
             var platofin = false;
             var velocidad_perdigon = 7.5;
+            var light;
 
             var maquinaLanzadora1 = new function(){
                 this.tamano = [1.5,15,1.5];
                 this.position = [-80,0,-40];
-                this.name = "maquinaLanzadora1"
+                this.name = "Maquina1"
             }
             var maquinaLanzadora2 = new function(){
                 this.tamano = [2,7,2];
                 this.position = [-50,0,-10];
-                this.name = "maquinaLanzadora2"
+                this.name = "Maquina2"
             }
             var maquinasLanzadoras = [maquinaLanzadora1, maquinaLanzadora2];
 
@@ -117,8 +115,8 @@
                 //foco.castShadow = true;
                 //scene.add(foco);
 
-                var light = new THREE.AmbientLight( 0x404040 ); // soft white light
-                light.intensity = 4;
+                light = new THREE.AmbientLight( 0x404040 ); // soft white light
+                light.intensity = 0;
                 scene.add( light );
 
                 // Incluimos la salida del render al elemento html
@@ -140,9 +138,9 @@
                 // Adaptamos el reloj
                 var delta = miReloj.getDelta();
                 // Adaptamos los controles trackball
-                controlCamara.update(delta);
- 				
- 				mirarAlObjeto();
+                //controlCamara.update(delta);
+                
+                mirarAlObjeto();
 
                 //actualizarJugador();
 
@@ -155,17 +153,16 @@
             function disparar(){
                 var inicio, fin;
                 var acertadonum;//Para saber que disparo ha acertado
-                var perd = "Perdigon" + String(perdigones_num)
-                if (scene.getObjectByName( "perdigon0") != undefined || scene.getObjectByName(perd) != undefined) {
+                if (scene.getObjectByName( "perdigon150") != undefined || scene.getObjectByName( "perdigon450") != undefined) {
                     if (disparo1 && !disparo2) {
                         inicio = 0;
-                        fin = perdigones_num;
+                        fin = 300;
                     }else if(disparo1 && disparo2){
                         inicio = 0;
-                        fin = perdigones_num * 2;
+                        fin = 600;
                     }else if (!disparo1 && disparo2){
-                        inicio = perdigones_num;
-                        fin = perdigones_num*2;
+                        inicio = 300;
+                        fin = 600;
                     }
 
                     for (var i = fin; i >= inicio; i--) {
@@ -265,12 +262,14 @@
                             pos.z = platos[0].platoInicio.position[2];
                             camera.lookAt(pos);
                             jugador.lookAt(pos)
+                            window.addEventListener('keydown', handleKey, false);
 
                         }
                     }else{
                         if (jugador){
                             camera.lookAt(maquinaLanzadora.position);
                             jugador.lookAt(maquinaLanzadora.position)
+                            window.addEventListener('keydown', handleKey, false);
                         }
                     }
                     
@@ -296,7 +295,7 @@
                 texture.repeat.set( 1, 1 );
 
                 // CREAMOS EL PLANO
-                var geometria = new THREE.PlaneGeometry(400, 400);
+                var geometria = new THREE.PlaneGeometry(200, 200);
                 var material = new THREE.MeshLambertMaterial({ map : texture });
                 //var material = new THREE.MeshLambertMaterial({color: 0xffffff});
                 plano = new THREE.Mesh(geometria, material);
@@ -325,7 +324,7 @@
 
 
                 // CREAMOS EL PLANO
-                var geometria = new THREE.SphereGeometry(400, 500, 500);
+                var geometria = new THREE.SphereGeometry(200, 20, 20);
                 var material = new THREE.MeshLambertMaterial({ map : texture2 });
                 //var material = new THREE.MeshLambertMaterial({color: 0xffffff});
                 cielo = new THREE.Mesh(geometria, material);
@@ -377,9 +376,10 @@
                     // Incluimos la esfera en la escena
                     scene.add(plato);
                 }else{
-                    platos = [plato2,plato1,plato2,plato2,plato1,plato2,plato2,plato1,plato2,plato2,plato1,plato2]
+                    platos = [plato2,plato1,plato1,plato2,plato1,plato1,plato2,plato1,plato2,plato2,plato1,plato2]
                     console.log("No quedan más platos");
                 }
+                window.removeEventListener('keydown', handleKey, false);
                 
             }
 
@@ -412,7 +412,7 @@
                     //Movimiento del eje Z
                     plat.position.z = plat.position.z + step * plat.velocidad[2];
 
-                    moverPlatoTimeout1 = setTimeout(function(){ moverPlato(plat) }, (step*10000));
+                    setTimeout(function(){ moverPlato(plat) }, (step*15000));
                 }else{
                     plat.position.y = 0.3;
                     plat.velocidad [1] = 0;
@@ -426,7 +426,6 @@
                         plat.position.z = plat.position.z + plat.velocidad[2]* step;
                         plat.velocidad[2] = plat.velocidad[2] - (step * 100 * plat.velocidad[2]);
                     }
-                    //moverPlatoTimeout2 = setTimeout(function(){ plat = undefined; scene.remove(plat)}, step*1000*100000*2);
 
                 }
             }
@@ -494,66 +493,29 @@
                 camera.position.z = z;
 
                 // Creamos los controles Trackball
-                controlCamara = new THREE.TrackballControls(camera);
+                /*controlCamara = new THREE.TrackballControls(camera);
                 controlCamara.rotateSpeed = 1.0;
                 controlCamara.zoomSpeed = 1.0;
                 controlCamara.panSpeed = 1.0;
-                controlCamara.staticMoving = true;
+                controlCamara.staticMoving = true;*/
             }
 
-            function colocarMaquinaLanzadora(){
-
-                maquinaLanzadora = platos[0].platoInicio;
-                //colocarUnaMaquinaLanzadora(maquinasLanzadoras[i],('String'+ String(i)));
+           function colocarMaquinaLanzadora(){
                 for (var i = maquinasLanzadoras.length - 1; i >= 0; i--){
-                    
-                    //colocarUnaMaquinaLanzadora(maquinasLanzadoras[i].position, ('Maquina'+ String(i)));
                     var geometry = new THREE.BoxBufferGeometry(maquinasLanzadoras[i].tamano[0],maquinasLanzadoras[i].tamano[1],maquinasLanzadoras[i].tamano[2]);
                     var material = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
                     maquinaLanzadora = new THREE.Mesh(geometry, material);
                     maquinaLanzadora.tamano = maquinasLanzadoras[i].tamano;
+                    maquinaLanzadora.name = maquinasLanzadoras[i].name
          
 
                     maquinaLanzadora.position.x = maquinasLanzadoras[i].position[0];
                     maquinaLanzadora.position.y = maquinasLanzadoras[i].position[1]+maquinasLanzadoras[i].tamano[1]/2;//+maquinasLanzadoras[i].tamano[1];
                     maquinaLanzadora.position.z = maquinasLanzadoras[i].position[2];
                     scene.add( maquinaLanzadora );
-                    
+                //});
                 }
                 
-            }
-
-            function colocarUnaMaquinaLanzadora(position, name){
-
-                var onProgress = function ( xhr ) {
-                    if ( xhr.lengthComputable ) {
-                        var percentComplete = xhr.loaded / xhr.total * 100;
-                        console.log( Math.round(percentComplete, 2) + '% downloaded' );
-                    }
-                };
-                var onError = function ( xhr ) { };
-
-                var mtlLoader = new THREE.MTLLoader();
-                mtlLoader.load( 'img/tree-obj/tree.mtl', function( materials ) {
-                    materials.preload();
-
-                    var objLoader = new THREE.OBJLoader();
-                            objLoader.setMaterials( materials );
-                            objLoader.load( 'img/tree-obj/tree.obj', function ( object ) {
-
-                                object.name = name;
-                                //console.log(name)
-                                object.position.x = position[0];
-                                object.position.y = position[1];
-                                object.position.z = position[2];
-                                //object.rotation.X = Math.PI / 2;
-                                object.scale.set(0.2,0.2,0.2);
-
-                                scene.add( object );
-
-                            });
-                   
-                    });
             }
 
             
@@ -561,7 +523,7 @@
                 if (platoReplica != undefined && platoReplica.position != undefined && !disparofin){
                     var plusOrMinus;
                     var audio = new Audio('mp3/gun_fire.mp3');
-                    var geometry = new THREE.SphereBufferGeometry( 0.01, 32, 32 );
+                    var geometry = new THREE.SphereBufferGeometry( 0.01, 2, 2);
                     var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
                     var sphere;
                     var inicio, fin;
@@ -569,11 +531,11 @@
                     if (!disparo1 && !disparo2) {
                         disparo1 = true;
                         inicio = 0;
-                        fin = perdigones_num;
+                        fin = 300;
                     }else if(disparo1 && !disparo2){
                         disparo2 = true;
-                        inicio = perdigones_num;
-                        fin = perdigones_num*2;
+                        inicio = 300;
+                        fin = 600;
                         disparofin = true;
                     }else{
                         inicio = 0;
@@ -632,7 +594,7 @@
                 }, 100);
 
 
-                var geometria = new THREE.SphereGeometry(0.8, 20, 20);
+                var geometria = new THREE.SphereGeometry(0.1, 5, 5);
                 var material = new THREE.MeshBasicMaterial({color: 0xff8000});
                 
 
@@ -675,11 +637,12 @@
 
             function empezar(){
                 if(scene != undefined){
-                    if(scene.getObjectByName('Maquina0') != undefined){
+                    if(scene.getObjectByName('Maquina1') != undefined){
                         setTimeout(function(){
                             var audio = new Audio('mp3/ok.mp3');
                             audio.volume = 0.1;
-                            audio.play(); 
+                            audio.play();
+                            light.intensity = 4;
                         }, 100);
                     }else{
                         setTimeout(function(){
@@ -698,7 +661,7 @@
 
             // Llama a la funcion handleResize() cuando se cambia el tamano de la ventana
             window.addEventListener('resize', handleResize, false);
-            window.addEventListener('keydown', handleKey, false);
+            window.removeEventListener('keydown', handleKey, false);
             window.addEventListener('click', disparo, false);
 
         </script>
