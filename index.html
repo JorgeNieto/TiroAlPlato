@@ -388,7 +388,7 @@
              * se adaptan en el instante correcto
              **/
             function moverPlato(plat) {
-                if (plat.position.y > 0.2){
+                if (plat.position.y > 0.3){
                     plat.position.y = (plat.position.y + (plat.velocidad[1] * step)/1.5 + ((gravedad *  (step*step))/1.5));
 
                     //Movimiento del eje Y
