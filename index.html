@@ -295,7 +295,7 @@
                 texture.repeat.set( 1, 1 );
 
                 // CREAMOS EL PLANO
-                var geometria = new THREE.PlaneGeometry(300, 300);
+                var geometria = new THREE.PlaneGeometry(400, 400);
                 var material = new THREE.MeshLambertMaterial({ map : texture });
                 //var material = new THREE.MeshLambertMaterial({color: 0xffffff});
                 plano = new THREE.Mesh(geometria, material);
@@ -324,7 +324,7 @@
 
 
                 // CREAMOS EL PLANO
-                var geometria = new THREE.SphereGeometry(500,50, 50);
+                var geometria = new THREE.SphereGeometry(700,50, 50);
                 var material = new THREE.MeshLambertMaterial({ map : texture2 });
                 //var material = new THREE.MeshLambertMaterial({color: 0xffffff});
                 cielo = new THREE.Mesh(geometria, material);
