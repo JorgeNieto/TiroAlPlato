@@ -12,6 +12,8 @@
 
     <body> 
         <script src="./libs/three.js"></script> 
+        <script src="./libs/dat.gui.js"></script> 
+        <script src="./libs/TrackballControls.js"></script> 
         <script src="./libs/OBJLoader.js"></script>
         <script src="./libs/MTLLoader.js"></script>
 
@@ -40,7 +42,6 @@
             var bolas = [];
             var platofin = false;
             var velocidad_perdigon = 7.5;
-            var light;
 
             var maquinaLanzadora1 = new function(){
                 this.tamano = [1.5,15,1.5];
@@ -74,7 +75,7 @@
             }
             
             
-            var platos = [plato2, plato1, plato1, plato2, plato1];
+            var platos = [plato3, plato1, plato1, plato2, plato1];
             
             function init() {
                 empezar();
@@ -115,8 +116,8 @@
                 //foco.castShadow = true;
                 //scene.add(foco);
 
-                light = new THREE.AmbientLight( 0x404040 ); // soft white light
-                light.intensity = 0;
+                var light = new THREE.AmbientLight( 0x404040 ); // soft white light
+                light.intensity = 4;
                 scene.add( light );
 
                 // Incluimos la salida del render al elemento html
@@ -138,7 +139,7 @@
                 // Adaptamos el reloj
                 var delta = miReloj.getDelta();
                 // Adaptamos los controles trackball
-                //controlCamara.update(delta);
+                controlCamara.update(delta);
  				
  				mirarAlObjeto();
 
@@ -262,14 +263,12 @@
                             pos.z = platos[0].platoInicio.position[2];
                             camera.lookAt(pos);
                             jugador.lookAt(pos)
-                            window.addEventListener('keydown', handleKey, false);
 
                         }
                     }else{
                         if (jugador){
                             camera.lookAt(maquinaLanzadora.position);
                             jugador.lookAt(maquinaLanzadora.position)
-                            window.addEventListener('keydown', handleKey, false);
                         }
                     }
                     
@@ -376,10 +375,9 @@
                     // Incluimos la esfera en la escena
                     scene.add(plato);
                 }else{
-                    platos = [plato2,plato1,plato1,plato2,plato1,plato1,plato2,plato1,plato2,plato2,plato1,plato2]
+                    platos = [plato2,plato1,plato3,plato2,plato1,plato3,plato2,plato1,plato3,plato2,plato1,plato3]
                     console.log("No quedan más platos");
                 }
-                window.removeEventListener('keydown', handleKey, false);
                 
             }
 
@@ -494,11 +492,11 @@
                 camera.position.z = z;
 
                 // Creamos los controles Trackball
-                /*controlCamara = new THREE.TrackballControls(camera);
+                controlCamara = new THREE.TrackballControls(camera);
                 controlCamara.rotateSpeed = 1.0;
                 controlCamara.zoomSpeed = 1.0;
                 controlCamara.panSpeed = 1.0;
-                controlCamara.staticMoving = true;*/
+                controlCamara.staticMoving = true;
             }
 
             function colocarMaquinaLanzadora(){
@@ -507,7 +505,17 @@
                 //colocarUnaMaquinaLanzadora(maquinasLanzadoras[i],('String'+ String(i)));
                 for (var i = maquinasLanzadoras.length - 1; i >= 0; i--){
                     
-                    colocarUnaMaquinaLanzadora(maquinasLanzadoras[i].position, ('Maquina'+ String(i)));
+                    //colocarUnaMaquinaLanzadora(maquinasLanzadoras[i].position, ('Maquina'+ String(i)));
+                    var geometry = new THREE.BoxBufferGeometry(maquinasLanzadoras[i].tamano[0],maquinasLanzadoras[i].tamano[1],maquinasLanzadoras[i].tamano[2]);
+                    var material = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+                    maquinaLanzadora = new THREE.Mesh(geometry, material);
+                    maquinaLanzadora.tamano = maquinasLanzadoras[i].tamano;
+         
+
+                    maquinaLanzadora.position.x = maquinasLanzadoras[i].position[0];
+                    maquinaLanzadora.position.y = maquinasLanzadoras[i].position[1]+maquinasLanzadoras[i].tamano[1]/2;//+maquinasLanzadoras[i].tamano[1];
+                    maquinaLanzadora.position.z = maquinasLanzadoras[i].position[2];
+                    scene.add( maquinaLanzadora );
                     
                 }
                 
@@ -622,7 +630,7 @@
                 }, 100);
 
 
-                var geometria = new THREE.SphereGeometry(0.1, 20, 20);
+                var geometria = new THREE.SphereGeometry(0.8, 20, 20);
                 var material = new THREE.MeshBasicMaterial({color: 0xff8000});
                 
 
@@ -669,8 +677,7 @@
                         setTimeout(function(){
                             var audio = new Audio('mp3/ok.mp3');
                             audio.volume = 0.1;
-                            audio.play();
-                            light.intensity = 4;
+                            audio.play(); 
                         }, 100);
                     }else{
                         setTimeout(function(){
@@ -689,7 +696,7 @@
 
             // Llama a la funcion handleResize() cuando se cambia el tamano de la ventana
             window.addEventListener('resize', handleResize, false);
-            window.removeEventListener('keydown', handleKey, false);
+            window.addEventListener('keydown', handleKey, false);
             window.addEventListener('click', disparo, false);
 
         </script>
