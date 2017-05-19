@@ -778,6 +778,18 @@
                 setTimeout(function(){disparo()},0);
             }
 
+            /**
+            * Funcion para controlar el touch del movil
+            **/
+            function disparoAsincrono(){
+                if(plato != undefined){
+                    setTimeout(function(){disparo()},0);
+                }else{
+                    crearPlato();
+                }
+                
+            }
+
             // Llama a la funcion init() cuando se carga la ventana 
             window.onload = init;
 
@@ -789,6 +801,9 @@
 
             //Se llama a la funcion de disparo al hacer click.
             window.addEventListener('click', disparoAsincrono, false);
+
+            //Se llama a la funcion de control para dispositivos moviles
+            window.addEventListener('touch', controlMovil, false);
 
         </script>
     </body> 
