@@ -61,6 +61,9 @@
             var audioGun1 = new Audio('mp3/gun_fire.mp3');
             var audioGun2 = new Audio('mp3/gun_fire.mp3');
 
+            //Variable para saber si se han cargado las 2 texturas de máquinas lanzadoras
+            var texturaMaquina = 0;
+
             //Como el audio OK suena muy fuerte reduzco su volumen.
              audioOK.volume = 0.1;
 
@@ -620,6 +623,7 @@
                                 object.scale.set(0.2,0.2,0.2);
 
                                 scene.add( object );
+                                texturaMaquina = texturaMaquina + 1;
 
                             });
                    
@@ -781,7 +785,7 @@
                 if(scene != undefined){
                     
                     //Si la máquina está cargada, quiere decir que el resto tambien. Sino consulto después de medio segundo
-                    if(scene.getObjectByName('Maquina1') != undefined && scene.getObjectByName('Maquina2') != undefined){
+                    if(scene.getObjectByName('Maquina1') != undefined && scene.getObjectByName('Maquina2') != undefined && texturaMaquina > 1){
                         //Aviso que esta todo listo para jugar
                         setTimeout(function(){
                             audioOK.play();
