@@ -96,6 +96,11 @@
             var platos = [plato2, plato1, plato1, plato2, plato1];
             
             function init() {
+                 //Si lo que se conecta es un movil o una tablet lo llevo a la version ligera
+                if(window.mobileAndTabletcheck()){
+                    window.location.replace("https://jorgenieto.github.io/TiroAlPlato/tiny.html");
+                }
+
                 //Se llama a esta funcion para ver que todo ha cargado correctamente
                 empezar();
                 
