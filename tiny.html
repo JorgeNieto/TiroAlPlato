@@ -255,7 +255,7 @@
                     if (platoReplica != undefined){
                         //Y si la replica está en una posicion superior a 0.3 y no se ha lanzado la funcion de mover antes.
                         if(platoReplica.position.y > 0.3){
-                            setTimeout(function(){ moverPlato(platoReplica)}, platoReplica.adelanto);
+                            setTimeout(function(){ moverPlato(platoReplica)}, platoReplica.adelanto * 1000);
                         }else{
                             //Si el plato ha tocado suelo, Reproducimos sonido de error. Ademas indicamos que el plato a tocado suelo.Sino eliminaría demasiados platos.
                             if (platoReplica.position.y <= 0.3 && !platoSuelo) {

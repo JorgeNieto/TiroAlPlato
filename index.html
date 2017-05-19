@@ -80,12 +80,12 @@
             var plato1 = new function(){
                 this.platoInicio = maquinaLanzadora1;
                 this.velocidadInicial = [15,0,0];
-                this.adelanto = [20,0,0,2];
+                this.adelanto = [20,0,0,1.5];
             }
             var plato2 = new function(){
                 this.platoInicio = maquinaLanzadora2;
                 this.velocidadInicial = [0,0,-10];
-                this.adelanto = [0,0,-11,0.5];
+                this.adelanto = [0,0,-12,0.5];
             }
             var plato3 = new function(){
                 this.helper = new THREE.Vector3().subVectors(maquinaLanzadora2.position, posicionJugador).normalize();
@@ -264,7 +264,7 @@
                     if (platoReplica != undefined){
                         //Y si la replica está en una posicion superior a 0.3 y no se ha lanzado la funcion de mover antes.
                         if(platoReplica.position.y > 0.3){
-                            setTimeout(function(){ moverPlato(platoReplica)}, platoReplica.adelanto);
+                            setTimeout(function(){ moverPlato(platoReplica)}, platoReplica.adelanto * 1000);
                         }else{
                             //Si el plato ha tocado suelo, Reproducimos sonido de error. Ademas indicamos que el plato a tocado suelo.Sino eliminaría demasiados platos.
                             if (platoReplica.position.y <= 0.3 && !platoSuelo) {
