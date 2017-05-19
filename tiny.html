@@ -20,27 +20,49 @@
             var renderer;
             var scene;
             var camera;
-            var miReloj;
-            var controlCamara;
+            var light;
+
+            //Para ajustar la velocidad y los pasos de los platos
             var step = 1/3600;
-            var inicio = 0;
+            
+            //variable utilizada para guardar y poder cambiar rápidamente el valor de la gravedad.
             var gravedad = -9.8;
+            
+            //variables globales para poder acceder rapidamente a los elementos del juego
             var plato;
             var platoReplica;
-            var moverPlatoTimeout1;
-            var moverPlatoTimeout2;
             var posicionJugador = [0,1.7/2,-80];
             var maquinaLanzadora;
-            var plano;
-            var cielo;
             var jugador;
+            
+            //variables para gestionar los estados de los disparos y el estado del plato
             var acertado = false;
             var disparo1, disparo2, disparofin = false;
+
+            //variables para gestionar los perdigones
             var bola;
             var bolas = [];
-            var platofin = false;
             var velocidad_perdigon = 7.5;
-            var light;
+            var num_perdigones = 300;
+
+            //Variable para la velocidad de los perdigones
+            var factorVelocidad = 1.75;
+
+            //variable para controlar que el plato toque suelo una unica vez
+            var platoSuelo = false;
+
+            //variable utilizada para saber si la replica o el plato se han disparado ya
+            var platoTimeout = false; //En esta se guardara una variable Boolean
+            var platoReplicaTimeout; //En esta un timeout
+
+            //Cargo los audios
+            var audioError = new Audio('mp3/error.mp3');
+            var audioOK = new Audio('mp3/ok.mp3');
+            var audioGun1 = new Audio('mp3/gun_fire.mp3');
+            var audioGun2 = new Audio('mp3/gun_fire.mp3');
+
+            //Como el audio OK suena muy fuerte reduzco su volumen.
+             audioOK.volume = 0.1;
 
             var maquinaLanzadora1 = new function(){
                 this.tamano = [1.5,15,1.5];
@@ -52,35 +74,29 @@
                 this.position = [-50,0,-10];
                 this.name = "Maquina2"
             }
-            var maquinasLanzadoras = [maquinaLanzadora1, maquinaLanzadora2];
-
             var plato1 = new function(){
                 this.platoInicio = maquinaLanzadora1;
                 this.velocidadInicial = [15,0,0];
                 this.adelanto = [20,0,0,2];
             }
-
             var plato2 = new function(){
                 this.platoInicio = maquinaLanzadora2;
                 this.velocidadInicial = [0,0,-10];
-                this.adelanto = [0,0,-13,1];
+                this.adelanto = [0,0,-11,0.5];
             }
-
             var plato3 = new function(){
                 this.helper = new THREE.Vector3().subVectors(maquinaLanzadora2.position, posicionJugador).normalize();
                 this.platoInicio =  maquinaLanzadora2;
                 this.velocidadInicial = [this.helper.x,this.helper.y+29,this.helper.z-5];
                 this.adelanto = [this.helper.x,this.helper.y+28,this.helper.z-7,1.5];
             }
-            
-            
+
+            //Se inicializan las maquinas lanzadoras y los platos que se van a usar en el juego
+            var maquinasLanzadoras = [maquinaLanzadora1, maquinaLanzadora2];
             var platos = [plato2, plato1, plato1, plato2, plato1];
             
             function init() {
-                empezar();
-                // Creamos un reloj
-                miReloj = new THREE.Clock();
-
+                
                 // Creamos la escena que contiene todos los objetos, camaras y luces
                 scene = new THREE.Scene();
 
@@ -96,36 +112,29 @@
                 //Creo el suelo con un plano
                 crearPlano();
 
+                //Creo el cielo
+                crearCielo();
+
                 //Coloco las máquinas lanzadoras
                 colocarMaquinaLanzadora()
 
                 //Creo el Jugador
                 crearJugador();
                 
-                //Coloco la camara y ajusto sus controles
+                //Coloco la camara
                 colocarCamara(0,(1.7/2),-80);
 
-                // CREAMOS LOS EJES
-                //var ejes = new THREE.AxisHelper(200);
-                //scene.add(ejes);
+                //Preparo la iluminacion
+                colocarLuces();
 
-                // CREAMOS EL FOCO
-                //var foco = new THREE.SpotLight(0xffffff);
-                //foco.position.set(-160, 60, -40);
-                //foco.castShadow = true;
-                //scene.add(foco);
-
-                light = new THREE.AmbientLight( 0x404040 ); // soft white light
-                light.intensity = 0;
-                scene.add( light );
+                //Se llama a esta funcion para ver que todo ha cargado correctamente
+                empezar();
 
                 // Incluimos la salida del render al elemento html
                 document.body.appendChild(renderer.domElement);
 
                 // Llamamos a la funcion de visualizacion
                 render();
-                //setTimeout(function(){  }, 3000);
-
             }
 
             /**
@@ -135,140 +144,179 @@
             function render() {
 
                 renderer.render(scene, camera);
-                // Adaptamos el reloj
-                var delta = miReloj.getDelta();
-                // Adaptamos los controles trackball
-                //controlCamara.update(delta);
                 
+                //Funcion para apuntar
                 mirarAlObjeto();
 
-                //actualizarJugador();
-
+                //Funcion para disparar
                 disparar();
 
-                // render utilizando requestAnimationFrame
+                //Render utilizando requestAnimationFrame
                 requestAnimationFrame(render); 
             }
 
+            /**
+            * Funcion para controlar el comportamiento del arma y los disparos
+            **/
             function disparar(){
-                var inicio, fin;
-                var acertadonum;//Para saber que disparo ha acertado
-                if (scene.getObjectByName( "perdigon150") != undefined || scene.getObjectByName( "perdigon450") != undefined) {
-                    if (disparo1 && !disparo2) {
-                        inicio = 0;
-                        fin = 300;
-                    }else if(disparo1 && disparo2){
-                        inicio = 0;
-                        fin = 600;
-                    }else if (!disparo1 && disparo2){
-                        inicio = 300;
-                        fin = 600;
-                    }
+                var inicio, fin;//Variables auxiliares para controlar los perdigones
+                var acertadonum;//Para saber que perdigon ha acertado, asi se si ha sido al primer o segundo disparo
+                
+                var lote_perdigon_1 = 0;//El lote de perdigones 1 empezará siempre por 0.
+                var lote_perdigon_2 = num_perdigones;//El inicio del lote 2 será variable y controlará tambien el final del 1. lote
 
+                //Si se ha disparado 
+                if (scene.getObjectByName( "perdigon0") != undefined || scene.getObjectByName( "perdigon" + String(num_perdigones)) != undefined) {
+                    if (disparo1 && !disparo2) {
+                        inicio = lote_perdigon_1;
+                        fin = lote_perdigon_2;
+                    }else if(disparo1 && disparo2){
+                        inicio = lote_perdigon_1;
+                        fin = lote_perdigon_2*2;
+                    }else if (!disparo1 && disparo2){
+                        inicio = lote_perdigon_2;
+                        fin = lote_perdigon_2*2;
+                    }
+                    //Se coge cada perdigon por separado
                     for (var i = fin; i >= inicio; i--) {
                         var perdigon = scene.getObjectByName("perdigon" + String(i));
+                        //Si ese perdigon existe, y no ha sido eliminado.
                         if (perdigon != undefined){
+                            //Se recalcula su distancia
                             perdigon.distance = perdigon.position.distanceTo(plato.position);
+
+                            //SI la distancia al plato es menos a (x) entonces lo damos como acierto.
                             if (perdigon.distance < 1){
                                     acertado = true;
                                     acertadonum = perdigon.name.split("perdigon")[1];
+                                    //Si hemos acertado el plato dejamos de calcular, ya que acabamos de guardar cual ha acertado para eliminarlo.
+                                    break;
                             }
+
+                            //Se actualiza la posicion de los perdigones con su vector.
                             perdigon.position.x = perdigon.position.x + velocidad_perdigon * perdigon.vector.x ;
                             perdigon.position.y = perdigon.position.y + velocidad_perdigon * perdigon.vector.y ;
                             perdigon.position.z = perdigon.position.z + velocidad_perdigon * perdigon.vector.z ;
-                            //CALCULAR LA DISTANCIA AL OTRO OBJETO Y SI ES MENOS A (X) ENTONCES CALCULAR BOUNDING BOX
+                            
+                            //Si la posicion que tiene el perdigón es más alejada despues de actualizarla, se elimina pues jamás acertara al plato.
                             if(perdigon.position.distanceTo(platoReplica.position) > perdigon.distance){ 
                                 eliminar_perdigon(perdigon.name.split("perdigon")[1]);
                             }
                         }
                     }
                 }
+                //Si hemos acertado el plato
                 if(acertado){
-                    //console.log("Hit")
-                    if(parseInt(acertadonum) < 300){
-                        setTimeout(function(){ eliminar_perdigones(300)},0);
+                    //Dependiendo del Perdigon que ha acertado (acertadonum), elimino esos perdigones 
+                    if(parseInt(acertadonum) < num_perdigones){
+                        setTimeout(function(){ eliminar_perdigones(num_perdigones)},0);
                         disparo1 = false;
                     }else{
-                        setTimeout(function(){ eliminar_perdigones(600)},0);
+                        setTimeout(function(){ eliminar_perdigones(num_perdigones*2)},0);
                         disparo1, disparo2 = false;
                     }
+                    //Si la escena aún tiene el plato y no se ha roto, lo rompo en diferentes bolas.
                     if(scene.getObjectByName("plato") && bolas.length == 0){
+                        //Funcion utilizada para romper el plato en diferentes bolitas.
                         explotar();
                     }
+                    //Despues se mueven las bolas
                     for (var i = 0; i < bolas.length; i++) {
                         bola = bolas[i]
                         if (bola != undefined){
+                            //Se mueve cada bola por separado
                             moverPlato(bola);
+
+                            //Si la bola toca el suelo, se elimina de la escena.
                             if (bola.position.y < 0.2){
                                 scene.remove(bola)
-                                bolas.remove(bola)
+                                bolas.pop()
                             }
                         }
                    }
+                   //Si no quedan bolas, se pasa el estado de acertado a false, y se recuperan los disparos.
                    if(bolas.length == 0){
                         acertado = false;
+                        //Se recarga el arma, para cuando el arma vuelva a mirar a la proxima máquina lanzadora.
                         setTimeout(function(){ disparofin = false },2000);
                     }
                 }
-
             }
+            
             /**
             * Funcion para que la camara sepa a que objeto mirar
             **/
             function mirarAlObjeto(){
+
+                //Si existe un plato y no le hemos acertado
                 if (plato && !acertado){
-                    moverPlato(plato);
+                    //movemos el plato (el plato que se ve), si no se ha movido antes
+                    setTimeout(function(){ moverPlato(plato)},0);
+
+                    //Si existe la replica
                     if (platoReplica != undefined){
-                        if(platoReplica.position.y > 0.5){
-                            setTimeout(function(){ moverPlato(platoReplica)}, 200);
+                        //Y si la replica está en una posicion superior a 0.3 y no se ha lanzado la funcion de mover antes.
+                        if(platoReplica.position.y > 0.3){
+                            setTimeout(function(){ moverPlato(platoReplica)}, platoReplica.adelanto);
                         }else{
-                            if (!platofin) {
+                            //Si el plato ha tocado suelo, Reproducimos sonido de error. Ademas indicamos que el plato a tocado suelo.Sino eliminaría demasiados platos.
+                            if (platoReplica.position.y <= 0.3 && !platoSuelo) {
                                 setTimeout(function(){ 
-                                    var audio = new Audio('mp3/error.mp3');
                                     scene.remove(plato);
                                     scene.remove(platoReplica)
                                     plato = undefined;
                                     platoReplica = undefined;
                                     platos.shift();
-                                    platofin = false;
-                                    audio.play();
+                                    audioError.play();
+                                    platoSuelo = false;
                                 }, 1000);
-                                platofin = true;
+                                platoSuelo = true;
                             }
                         }
-                        if (jugador) {
-                            camera.lookAt(platoReplica.position);
-                            jugador.lookAt(platoReplica.position)
-                        }
+                        //Le digo al jugador que mire a la replica
+                        camera.lookAt(platoReplica.position);
+                        jugador.lookAt(platoReplica.position);
                     }
+                //Si le hemos dado al plato
                 }else if (acertado){
                     for (var i = 10 - 1; i >= 0; i--) {
                         bola = scene.getObjectByName("bola" + String(i));
                         if (bola != undefined){
+                            //La camara seguira los trocitos de plato (Las pelotas)
                             camera.lookAt(bola.position)
+                            //Mientras la replica se está eliminando la escopeta sigue a la replica.
                             if (platoReplica != undefined){
                                 jugador.lookAt(platoReplica.position)
                             }
                             break;
                         }
                     }
-
+                //Si no tenemos plato, y tampoco hemos acertado, significa que hemos fallado el plato y ya está eliminado.
                 }else{
+                    //Si quedan mas platos
                     if(platos.length > 0){
                         if (jugador){
+                            //Apunto a la posicion ficticia que tendria el plato + el tamaño de la maquina de la que va a salir.
                             var pos = new THREE.Vector3();
                             pos.x = platos[0].platoInicio.position[0];
                             pos.y = platos[0].platoInicio.position[1] + platos[0].platoInicio.tamano[1]-2.25;
                             pos.z = platos[0].platoInicio.position[2];
+
+                            //Van a mirar el jugador (La escopeta), y la camara del jugador (Los ojos del jugador)
                             camera.lookAt(pos);
                             jugador.lookAt(pos)
+
+                            //Ademas habilito la posibilidad de lanzar un plato con la tecla "P"
                             window.addEventListener('keydown', handleKey, false);
 
                         }
                     }else{
                         if (jugador){
+                            //Si no quedan platos el jugador y la camará mirarán a la ultima máquina de la que haya salido un plato.
                             camera.lookAt(maquinaLanzadora.position);
                             jugador.lookAt(maquinaLanzadora.position)
+
+                            //Habilito la tecla para lanzar plato, porque aunque no queden platos, se recargan los platos con la misma tecla.
                             window.addEventListener('keydown', handleKey, false);
                         }
                     }
@@ -277,30 +325,27 @@
             }
 
             /**
-            * Funcion para crear el plano en la escena
+            * Funcion para crear el plano en la escena, se utiliza una textura para darle apariencia de tierra
             *
             **/
             function crearPlano(){
 
                 texture = THREE.ImageUtils.loadTexture( "./img/grass.jpg" );
-
-                // assuming you want the texture to repeat in both directions:
+                
+                /* assuming you want the texture to repeat in both directions:
                 texture.wrapS = THREE.RepeatWrapping; 
                 texture.wrapT = THREE.RepeatWrapping;
-
+                */
                 texture.minFilter = THREE.LinearFilter;
 
-                // how many times to repeat in each direction; the default is (1,1),
-                //   which is probably why your example wasn't working
+                //Cuantas veces se repite la textura en cada dirección
                 texture.repeat.set( 1, 1 );
 
-                // CREAMOS EL PLANO
+                //Creo el plano
                 var geometria = new THREE.PlaneGeometry(300, 300);
                 var material = new THREE.MeshLambertMaterial({ map : texture });
-                //var material = new THREE.MeshLambertMaterial({color: 0xffffff});
                 plano = new THREE.Mesh(geometria, material);
-                plano.receiveShadow = false;
-                plano.material.side = THREE.DoubleSide;
+               
                 // Rotamos y trasladamos el plano
                 plano.rotation.x = -0.5 * Math.PI;
                 plano.position.x = 0;
@@ -309,36 +354,52 @@
 
                 // Incluimos el plano en la escena
                 scene.add(plano);
-
+            }
+            
+            /**
+            * Funcion para crear el cielo en la escena, se crea una esfera y se el da una textura al interior de esta.
+            *
+            **/
+            function crearCielo(){
                 //Ahora creo el cielo
                 texture2 = THREE.ImageUtils.loadTexture( "./img/sky.jpg" );
-
-                // assuming you want the texture to repeat in both directions:
-                texture2.wrapS = THREE.RepeatWrapping; 
-                texture2.wrapT = THREE.RepeatWrapping;
+                
                 texture2.minFilter = THREE.LinearFilter;
 
-                // how many times to repeat in each direction; the default is (1,1),
-                //   which is probably why your example wasn't working
+                //Cuantas veces se va a repetir la textura
                 texture2.repeat.set( 1,1 );
 
-
-                // CREAMOS EL PLANO
-                var geometria = new THREE.SphereGeometry(600, 20, 20);
+                //Creo la esfera
+                var geometria = new THREE.SphereGeometry(600, 10, 10);
                 var material = new THREE.MeshLambertMaterial({ map : texture2 });
-                //var material = new THREE.MeshLambertMaterial({color: 0xffffff});
                 cielo = new THREE.Mesh(geometria, material);
+
+                //Le digo que la esfera se tiene que ver por el interior
                 cielo.material.side = THREE.BackSide;
+
+                //También le digo que la esfera no recive sombra
                 cielo.receiveShadow = false;
                 
+                //Coloco la esfera en el punto central
                 cielo.position.x = 0;
                 cielo.position.y = 0;
                 cielo.position.z = 0;
 
-                // Incluimos el plano en la escena
+                //Incluyo la esfera en la escena
                 scene.add(cielo);
+            }
 
+            /**
+            *   Funcion utilizada para crear las Luces
+            **/
+            function colocarLuces(){
+                /** De momento solo se va crear una luz ambiental con intensidad 0, 
+                * cuando el juego se cargue completamente otra luz subirá la intensidad.
+                **/
 
+                light = new THREE.AmbientLight( 0x404040 ); // Luz blanca suave
+                light.intensity = 0;
+                scene.add( light );
             }
 
             /**
@@ -379,8 +440,7 @@
                     platos = [plato2,plato1,plato1,plato2,plato1,plato1,plato2,plato1,plato2,plato2,plato1,plato2]
                     console.log("No quedan más platos");
                 }
-                window.removeEventListener('keydown', handleKey, false);
-                
+                window.removeEventListener('keydown', handleKey, false);    
             }
 
              /**
@@ -388,43 +448,51 @@
              * se adaptan en el instante correcto
              **/
             function moverPlato(plat) {
-             
-                if (plat.position.y > 0.3){
-                    plat.position.y = (plat.position.y + (plat.velocidad[1] * step)/1.5 + ((gravedad *  (step*step))/1.5));
+                if (plat != undefined){
+                    if (plat.position.y > 0.3){
 
-                    
-                    //Movimiento del eje Y
-                    if (plat.velocidad[1] < 0){
-                        //console.log(velocidad[1])
-                        plat.velocidad [1] = plat.velocidad [1] + ((gravedad * step)/100)
-                    }else{
-                        plat.velocidad [1] = plat.velocidad [1] + (gravedad * step);
+                        //Formula retocada para darle más realismo a los platos
+                        plat.position.y = (plat.position.y + (plat.velocidad[1] * factorVelocidad * step)/1.5 + ((gravedad * factorVelocidad * (step*step))/1.5));
 
-                    }/**/
-
-                    //Movimiento del eje X
-                    plat.position.x = plat.position.x + plat.velocidad[0] * step;
-                    
-                    //Movimiento del eje Z
-                    plat.position.z = plat.position.z + step * plat.velocidad[2];
-
-                    setTimeout(function(){ moverPlato(plat) }, (step*15000));
-                }else{
-                    plat.position.y = 0.3;
-                    plat.velocidad [1] = 0;
-
-                    if(plat.velocidad[0] > 0 && plat.velocidad[2]>0){
-                        //Movimiento del eje X
-                        plat.position.x = plat.position.x + step*plat.velocidad[0]
-                        plat.velocidad[0] = plat.velocidad[0] - (step * 100 * plat.velocidad[0]);
                         
-                        //Movimiento del eje Z
-                        plat.position.z = plat.position.z + plat.velocidad[2]* step;
-                        plat.velocidad[2] = plat.velocidad[2] - (step * 100 * plat.velocidad[2]);
-                    }
+                        //Movimiento del eje Y, este pierde y gana velocidad por la gravedad.
+                        if (plat.velocidad[1] < 0){
 
+                            plat.velocidad [1] = plat.velocidad [1] + ((gravedad * factorVelocidad * step)/100)
+                        }else{
+                            plat.velocidad [1] = plat.velocidad [1] + (gravedad * factorVelocidad * step);
+
+                        }
+
+                        //Movimiento del eje X, este no pierde velocidad por no tocar el suelo
+                        plat.position.x = plat.position.x + plat.velocidad[0] * factorVelocidad * step;
+                        
+                        //Movimiento del eje Z, este no pierde velocidad por no tocar el suelo
+                        plat.position.z = plat.position.z + step * plat.velocidad[2] * factorVelocidad;
+
+                        setTimeout(function(){moverPlato(plat)},0);
+                    }else{
+                        //Se establece que el plato.Y no baje de 0.3 para que no atraviese el suelo.
+                        plat.position.y = 0.3;
+
+                        //Se pasa la velocidad de Y a 0.
+                        plat.velocidad [1] = 0;
+
+                        //Mientras el plato tenga velocidad en X y en Z.
+                        if(plat.velocidad[0] > 0 && plat.velocidad[2]>0){
+                            //Movimiento del eje X, con su perdida de velocidad.
+                            plat.position.x = plat.position.x + step * factorVelocidad * plat.velocidad[0]
+                            plat.velocidad[0] = plat.velocidad[0] - (step * 100 * factorVelocidad * plat.velocidad[0]);
+                            
+                            //Movimiento del eje Z, con su perdida de velocidad.
+                            plat.position.z = plat.position.z + plat.velocidad[2] * factorVelocidad * step;
+                            plat.velocidad[2] = plat.velocidad[2] - (step * 100 * factorVelocidad * plat.velocidad[2]);
+                        }
+
+                    }
                 }
             }
+            
             /**
              * Funcion que controla el tamano y asegura que la camara y el render
              * se adaptan en el instante correcto
@@ -435,18 +503,23 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             }
 
-
+            /**
+            *   Funcion utilizada para gestionar el evento de pulsar tecla.
+            **/
             function handleKey(e){
                 var event = window.event ? window.event : e;
 
                 switch(event.keyCode) {
-                    case 80:
-                        crearPlato();//Creamos el plato;
+                    case 80: //Cuando se pulse la tecla "P" se lanzará la función  crearPlato()
+                        crearPlato();
                         break;
                     default:
                 }
             }
 
+            /**
+            *   Funcion utilizada para clonar objetos
+            **/
             function cloneObject(obj) {
                 if (obj === null || typeof obj !== 'object') {
                     return obj;
@@ -459,99 +532,125 @@
              
                 return temp;
             }
+           
             /**
             * Funcion para colocar y dibujar un jugador en el campo.
             **/
             function crearJugador(){
-               
-               var loader = new THREE.ObjectLoader();
+               //Cargo el objectLoader para poder cargar el objeto JSON de la escopeta.
+                var loader = new THREE.ObjectLoader();
+
+                //Cargo la textura de la escopeta.
                 loader.load('img/shotgun-threejs/shotgun.json', function(object) {
+
+                    /** El onjeto cargado tendra el nombre "object", lo utilizaremos para ponerlo en la posicion
+                    *   que a nosotros más nos interesa.
+                    **/
+
                     object.position.x = posicionJugador[0];
                     object.position.y = posicionJugador[1];
                     object.position.z = posicionJugador[2];
                     object.rotation.X = Math.PI / 2;
                     object.scale.set(0.5,0.5,0.5);
 
+                    //Asignamos el objeto "object" a la variable global "jugador".
                     jugador = object;
-                scene.add(jugador);
+                    scene.add(jugador);
                 });
+            }
 
-        }
             /**
             * Funcion para colocar la cámara.
             **/
             function colocarCamara(x, y, z){
-                 // Creamos la camara
+                // Creamos la camara con mucha profundidad para poder ver los objetos más lejanos.
                 camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000000);
-                // Posicionamos la camara en el centro de la escena
+                
+                // Posicionamos la camara en el lugar indicado. (Coincidira con la posicion del Jugador)
                 camera.position.x = x;
                 camera.position.y = y;
                 camera.position.z = z;
-
-                // Creamos los controles Trackball
-                /*controlCamara = new THREE.TrackballControls(camera);
-                controlCamara.rotateSpeed = 1.0;
-                controlCamara.zoomSpeed = 1.0;
-                controlCamara.panSpeed = 1.0;
-                controlCamara.staticMoving = true;*/
             }
 
-           function colocarMaquinaLanzadora(){
+            /**
+            *   Funcion para colocar todas las máquinas lanzadoras.
+            **/
+            function colocarMaquinaLanzadora(){
+                //El material solo hay que crearlo una vez.
+                var material = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+
+                //Se crea un bucle para crear todas las maquinas de golpe
                 for (var i = maquinasLanzadoras.length - 1; i >= 0; i--){
+                    //Se crea cada maquina con el tamaño que le corresponde
                     var geometry = new THREE.BoxBufferGeometry(maquinasLanzadoras[i].tamano[0],maquinasLanzadoras[i].tamano[1],maquinasLanzadoras[i].tamano[2]);
                     var material = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
                     maquinaLanzadora = new THREE.Mesh(geometry, material);
+                    
+                    //Se coloca cada maquina en el sitio y con el nombre que le corresponde
                     maquinaLanzadora.tamano = maquinasLanzadoras[i].tamano;
-                    maquinaLanzadora.name = maquinasLanzadoras[i].name
-         
-
+                    maquinaLanzadora.name = maquinasLanzadoras[i].name;
                     maquinaLanzadora.position.x = maquinasLanzadoras[i].position[0];
-                    maquinaLanzadora.position.y = maquinasLanzadoras[i].position[1]+maquinasLanzadoras[i].tamano[1]/2;//+maquinasLanzadoras[i].tamano[1];
+                    maquinaLanzadora.position.y = maquinasLanzadoras[i].position[1]+maquinasLanzadoras[i].tamano[1]/2;
                     maquinaLanzadora.position.z = maquinasLanzadoras[i].position[2];
+                    
+                    //se añade la maquina a la escena
                     scene.add( maquinaLanzadora );
-                //});
                 }
-                
             }
 
-            
+            /**
+            *   Funcion para realizar el disparo.
+            **/
             function disparo(){
+                //Si hay replica, esta tiene posicion y no hemos terminado los disparos.
                 if (platoReplica != undefined && platoReplica.position != undefined && !disparofin){
-                    var plusOrMinus;
-                    var audio = new Audio('mp3/gun_fire.mp3');
+                    var plusOrMinus; //variable para poder hacer random luego
+
+                    //Se carga la geometria y el material una vez
                     var geometry = new THREE.SphereBufferGeometry( 0.01, 2, 2);
                     var material = new THREE.MeshBasicMaterial( {color: 0x000000} );
+
+                    //Variables para trabajar con los perdigones
                     var sphere;
                     var inicio, fin;
                     
+                    //Si no se ha disparado, se lanzara el primer disparo. Se crearán de 0 hasta num_perdigones.
                     if (!disparo1 && !disparo2) {
                         disparo1 = true;
                         inicio = 0;
-                        fin = 300;
+                        fin = num_perdigones;
+                        audioGun1.play()
+                    //Si se ha disparado el primero, se lanzara el segundo disparo. Se crearán de num_perdigones hasta num_perdigones*2. Se activará el fin de los disparos.
                     }else if(disparo1 && !disparo2){
                         disparo2 = true;
-                        inicio = 300;
-                        fin = 600;
+                        inicio = num_perdigones;
+                        fin = num_perdigones*2;
+                        eliminar_perdigones(num_perdigones)
                         disparofin = true;
+                        audioGun2.play()
+                    //Sino se pone los dos a 0 para evitar posibles errores.
                     }else{
                         inicio = 0;
                         fin = 0;
-
                     }
 
+                    //Se empiezan a crear los perdigones.
                     for (var i = inicio; i <= fin; i++) {
+                        //Se crea cada perdigon con su nombre y su posicion.
                         sphere = new THREE.Mesh( geometry, material );
                         sphere.name = 'perdigon' + String(i);
                         sphere.position.x = jugador.position.x;
                         sphere.position.y = jugador.position.y;
                         sphere.position.z = jugador.position.z;
 
-                        sphere.BB = undefined;
+                        //Se le crea una distancia indefinida
                         sphere.distance = undefined;
 
+                        //Se le crea un vector de dirección desde su punto inicial hacia la replica del plato. (Así puedo hacer que se adelanten al plato original)
                         sphere.vector = new THREE.Vector3();
                         sphere.vector.subVectors(platoReplica.position, sphere.position).normalize();
 
+                        //Con estas funciones se calcula la dispersion del disparo.
                         plusOrMinus= Math.random() < 0.5 ? -1 : 1;
                         sphere.vector.x = sphere.vector.x + plusOrMinus * Math.random()/30;
                         plusOrMinus= Math.random() < 0.5 ? -1 : 1;
@@ -559,12 +658,17 @@
                         plusOrMinus= Math.random() < 0.5 ? -1 : 1;
                         sphere.vector.z = sphere.vector.z + plusOrMinus * Math.random()/30;
 
+                        //Se añade el perdigon a la escena.
                         scene.add( sphere );
-                        //console.log('Disparo' + String(i))
-                        audio.play();
+
+                        
                     }
                 }
             }
+            
+            /**
+            * Funcion utilizada para eliminar perdigones por disparos completos.
+            **/
             function eliminar_perdigones(startnum){
                 for (var i = startnum; i >= 0; i--) {
                         var perdigon = scene.getObjectByName("perdigon" + String(i));
@@ -573,7 +677,10 @@
                         }
                     }
             }
-
+            
+            /**
+            * Funcion utilizada para eliminar un único perdigón.
+            **/
             function eliminar_perdigon(i){
                 var perdigon = scene.getObjectByName("perdigon" + String(i));
                 if (perdigon != undefined){
@@ -581,63 +688,75 @@
                 }
             }
 
+            /**
+            * Funcion utilizada para romper el plato en trozos.
+            **/
             function explotar(){
-               
+                //Como se ha roto el plato, se reproducirá el sonido OK.
                 setTimeout(function(){
-                    var audio = new Audio('mp3/ok.mp3');
-                    audio.volume = 0.1;
-                    audio.play(); 
+                    audioOK.play(); 
                 }, 100);
 
-
+                //Se cargan las geometrias y el material una vez.
                 var geometria = new THREE.SphereGeometry(0.1, 5, 5);
                 var material = new THREE.MeshBasicMaterial({color: 0xff8000});
                 
-
+                //Se crean las bolas
                 for (var i = 10 - 1; i >= 0; i--) {
                     bola = new THREE.Mesh(geometria, material);
                     bola.castShadow = true;
 
+                    //A cada bola se le da la misma posicion inicial
                     bola.position.x = plato.position.x;
                     bola.position.y = plato.position.y;
                     bola.position.z = plato.position.z;
 
+                    //A cada bola se le da un nombre diferente
                     bola.name = 'bola'+ String(i);
 
+                    //Funcion para que cada bola tenga una velocidad inicial diferente
                     bola.velocidad = [(plato.velocidad[0] - Math.random()*5/1*2), (plato.velocidad[1] - Math.random()*20/1*2),(plato.velocidad[2] - Math.random()*5/1*2)];
 
+                    //Se añade la bola a la escena y a un array.
                     scene.add(bola);
                     bolas.push(bola);
-                    //console.log(bola.velocidad)
-                    //console.log(bola.position)
+
                 }
+
+                //Por ultimo se eliminan el plato y su replica de la escena.
                 scene.remove(plato);
                 scene.remove(platoReplica)
 
                 
-                
+                //Como la escopeta tiene que seguir a la replica, se elimina 3 Segundos más tarde. Además se saca el primer plato.
                 setTimeout(function(){ 
                     plato = undefined;
                     platoReplica = undefined;
                     platos.shift();
                 }, 3000);
+
+                //Cuando hayan pasado 4 segundos se eliminan las bolas
                 setTimeout(function(){ 
                     for (var i = 10 - 1; i >= 0; i--) {
                         bola = bolas.shift();
                         scene.remove(bola)
                     }
-                }, 4000);
-
-                
+                }, 4000); 
             }
 
+            /**
+            *   Esta función ilumina la escena y reproduce un sonido si todo se ha cargado correctamente.
+            *   Mientras no este cargada la escena con las máquinas lanzadoras esta función se llama recursivamente y no ilumina la escena
+            *   por lo que el jugador no podrá jugar.
+            **/
             function empezar(){
                 if(scene != undefined){
+                    
+                    //Si la máquina está cargada, quiere decir que el resto tambien. Sino consulto después de medio segundo
                     if(scene.getObjectByName('Maquina1') != undefined){
+                        //Aviso que esta todo listo para jugar
                         setTimeout(function(){
-                            var audio = new Audio('mp3/ok.mp3');
-                            audio.volume = 0.1;
-                            audio.play();
+                            audioOK.play();
                             light.intensity = 4;
                         }, 100);
                     }else{
@@ -652,13 +771,24 @@
                 }
             }
 
+            /**
+            * Funcion para llamar de forma asincrona a la funcion disparo
+            **/
+            function disparoAsincrono(){
+                setTimeout(function(){disparo()},0);
+            }
+
             // Llama a la funcion init() cuando se carga la ventana 
             window.onload = init;
 
             // Llama a la funcion handleResize() cuando se cambia el tamano de la ventana
             window.addEventListener('resize', handleResize, false);
+
+            //Desaactivo el poder lanzar un plato con las teclas.(Para evitar posible errores)
             window.removeEventListener('keydown', handleKey, false);
-            window.addEventListener('click', disparo, false);
+
+            //Se llama a la funcion de disparo al hacer click.
+            window.addEventListener('click', disparoAsincrono, false);
 
         </script>
     </body> 
