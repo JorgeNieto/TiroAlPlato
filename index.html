@@ -781,7 +781,7 @@
                 if(scene != undefined){
                     
                     //Si la máquina está cargada, quiere decir que el resto tambien. Sino consulto después de medio segundo
-                    if(scene.getObjectByName('Maquina1') != undefined){
+                    if(scene.getObjectByName('Maquina1') != undefined && scene.getObjectByName('Maquina2') != undefined){
                         //Aviso que esta todo listo para jugar
                         setTimeout(function(){
                             audioOK.play();
