@@ -3,7 +3,7 @@ Tiro Al Plato
 
 Este repositorio es un ejercicio para la clase de Sistemas Gráficos Interactivos.
 
-**Aviso**: Este proyecto se ha desarrollado con una maquina con 16 GB de RAM y una tarjeta gráfica Intel Iris Pro dedicada de 1GB. Si la maquina en la que lo ejecutas tiene peores especificaciones puede que el programa se trabe, funcione más lento...
+**Aviso**: Este proyecto se ha desarrollado con una maquina con 16 Gb de RAM y una tarjeta gráfica Intel Iris Pro dedicada de 1Gb. Si la maquina en la que lo ejecutas tiene peores especificaciones puede que el programa se trabe, funcione más lento...
 
 ## Modo de uso
 
