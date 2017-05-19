@@ -76,23 +76,22 @@
             var plato1 = new function(){
                 this.platoInicio = maquinaLanzadora1;
                 this.velocidadInicial = [15,0,0];
-                this.adelanto = [20,0,0,2];
+                this.adelanto = [18,0,0,0.01];
             }
             var plato2 = new function(){
                 this.platoInicio = maquinaLanzadora2;
-                this.velocidadInicial = [0,0,-10];
-                this.adelanto = [0,0,-11,0.5];
+                this.velocidadInicial = [0,0,-7];
+                this.adelanto = [0,0,-9, 0.1];
             }
             var plato3 = new function(){
-                this.helper = new THREE.Vector3().subVectors(maquinaLanzadora2.position, posicionJugador).normalize();
-                this.platoInicio =  maquinaLanzadora2;
-                this.velocidadInicial = [this.helper.x,this.helper.y+29,this.helper.z-5];
-                this.adelanto = [this.helper.x,this.helper.y+28,this.helper.z-7,1.5];
+                this.platoInicio = maquinaLanzadora1;
+                this.velocidadInicial = [6,0,0];
+                this.adelanto = [8,0,0,0.15];
             }
 
             //Se inicializan las maquinas lanzadoras y los platos que se van a usar en el juego
             var maquinasLanzadoras = [maquinaLanzadora1, maquinaLanzadora2];
-            var platos = [plato2, plato1, plato1, plato2, plato1];
+            var platos = [plato2, plato1, plato3, plato2, plato1];
             
             function init() {
                 // Creamos la escena que contiene todos los objetos, camaras y luces
@@ -440,7 +439,7 @@
                     // Incluimos la esfera en la escena
                     scene.add(plato);
                 }else{
-                    platos = [plato2,plato1,plato1,plato2,plato1,plato1,plato2,plato1,plato2,plato2,plato1,plato2]
+                    platos = [plato2,plato1,plato3,plato2,plato1,plato1,plato2,plato3,plato2,plato3,plato1,plato2]
                     console.log("No quedan más platos");
                 }
                 window.removeEventListener('keydown', handleKey, false);    
