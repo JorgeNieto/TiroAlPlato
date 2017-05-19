@@ -781,7 +781,7 @@
             /**
             * Funcion para controlar el touch del movil
             **/
-            function disparoAsincrono(){
+            function controlMovil(){
                 if(plato != undefined){
                     setTimeout(function(){disparo()},0);
                 }else{
@@ -803,7 +803,7 @@
             window.addEventListener('click', disparoAsincrono, false);
 
             //Se llama a la funcion de control para dispositivos moviles
-            window.addEventListener('touch', controlMovil, false);
+            window.addEventListener('touchstart', controlMovil, false);
 
         </script>
     </body> 
