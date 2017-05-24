@@ -7,7 +7,7 @@ Este repositorio es un ejercicio para la clase de Sistemas Gráficos Interactivo
 
 ## Modo de uso
 
-Para jugar al juego entrar en el siguiente [enlace](https://jorgenieto.github.io/TiroAlPlato).
+Para jugar al juego entrar en el siguiente [enlace](https://jorgenieto.github.io/TiroAlPlato), la version para moviles y la versión ligera se puede encontrar en este otro [enlace](https://jorgenieto.github.io/TiroAlPlato/tiny.html).
 
 Es un juego que tarda un poco en cargar las primeras texturas, por lo que no es aconsejable empezar a jugar hasta que se hayan cargado los dos primeros arboles, y se haya escuchado la primera campana.
 
