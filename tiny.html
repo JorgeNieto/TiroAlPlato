@@ -15,7 +15,167 @@
         <script src="./libs/OBJLoader.js"></script>
         <script src="./libs/MTLLoader.js"></script>
         <script>
-		
+            // variables globales
+            var renderer;
+            var scene;
+            var camera;
+            var light;
+
+            //Para ajustar la velocidad y los pasos de los platos
+            var step = 1/3600;
+            
+            //variable utilizada para guardar y poder cambiar rápidamente el valor de la gravedad.
+            var gravedad = -9.8;
+            
+            //variables globales para poder acceder rapidamente a los elementos del juego
+            var plato;
+            var platoReplica;
+            var posicionJugador = [0,1.7/2,-80];
+            var maquinaLanzadora;
+            var jugador;
+            
+            //variables para gestionar los estados de los disparos y el estado del plato
+            var acertado = false;
+            var disparo1, disparo2, disparofin = false;
+
+            //variables para gestionar los perdigones
+            var bola;
+            var bolas = [];
+            var velocidad_perdigon = 7.5;
+            var num_perdigones = 300;
+
+            //Variable para la velocidad de los perdigones
+            var factorVelocidad = 1.75;
+
+            //variable para controlar que el plato toque suelo una unica vez
+            var platoSuelo = false;
+
+            //variable utilizada para saber si la replica o el plato se han disparado ya
+            var platoTimeout = false; //En esta se guardara una variable Boolean
+            var platoReplicaTimeout; //En esta un timeout
+
+            //Cargo los audios
+            var audioError = new Audio('mp3/error.mp3');
+            var audioOK = new Audio('mp3/ok.mp3');
+            var audioGun1 = new Audio('mp3/gun_fire.mp3');
+            var audioGun2 = new Audio('mp3/gun_fire.mp3');
+
+            //Como el audio OK suena muy fuerte reduzco su volumen.
+             audioOK.volume = 0.1;
+
+            var maquinaLanzadora1 = new function(){
+                this.tamano = [1.5,15,1.5];
+                this.position = [-80,0,-40];
+                this.name = "Maquina1"
+            }
+            var maquinaLanzadora2 = new function(){
+                this.tamano = [2,7,2];
+                this.position = [-50,0,-10];
+                this.name = "Maquina2"
+            }
+            var plato1 = new function(){
+                this.platoInicio = maquinaLanzadora1;
+                this.velocidadInicial = [15,0,0];
+                this.adelanto = [18,0,0,0.01];
+            }
+            var plato2 = new function(){
+                this.platoInicio = maquinaLanzadora2;
+                this.velocidadInicial = [0,0,-7];
+                this.adelanto = [0,0,-9, 0.1];
+            }
+            var plato3 = new function(){
+                this.platoInicio = maquinaLanzadora1;
+                this.velocidadInicial = [6,0,0];
+                this.adelanto = [8,0,0,0.15];
+            }
+
+            //Se inicializan las maquinas lanzadoras y los platos que se van a usar en el juego
+            var maquinasLanzadoras = [maquinaLanzadora1, maquinaLanzadora2];
+            var platos = [plato2, plato1, plato3, plato2, plato1];
+            
+            function init() {
+                // Creamos la escena que contiene todos los objetos, camaras y luces
+                scene = new THREE.Scene();
+
+                // Creamos el objeto render que usaremos para visualizar la escena
+                renderer = new THREE.WebGLRenderer();
+                
+                // Inicializamos el color del fondo y el tamano
+                renderer.setClearColor(0xEEEEEE);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap; // por defecto THREE.PCFShadowMap
+
+                //Creo el suelo con un plano
+                crearPlano();
+
+                //Creo el cielo
+                crearCielo();
+
+                //Coloco las máquinas lanzadoras
+                colocarMaquinaLanzadora()
+
+                //Creo el Jugador
+                crearJugador();
+                
+                //Coloco la camara
+                colocarCamara(0,(1.7/2),-80);
+
+                //Preparo la iluminacion
+                colocarLuces();
+
+                //Se llama a esta funcion para ver que todo ha cargado correctamente
+                empezar();
+
+                // Incluimos la salida del render al elemento html
+                document.body.appendChild(renderer.domElement);
+
+                // Llamamos a la funcion de visualizacion
+                render();
+            }
+
+            /**
+             * Funcion para visualizar la escena
+             * El intervalo viene dado por requestAnimationFrame
+             **/
+            function render() {
+
+                renderer.render(scene, camera);
+                
+                //Funcion para apuntar
+                mirarAlObjeto();
+
+                //Funcion para disparar
+                disparar();
+
+                //Render utilizando requestAnimationFrame
+                requestAnimationFrame(render); 
+            }
+
+            /**
+            * Funcion para controlar el comportamiento del arma y los disparos
+            **/
+            function disparar(){
+                var inicio, fin;//Variables auxiliares para controlar los perdigones
+                var acertadonum;//Para saber que perdigon ha acertado, asi se si ha sido al primer o segundo disparo
+                
+                var lote_perdigon_1 = 0;//El lote de perdigones 1 empezará siempre por 0.
+                var lote_perdigon_2 = num_perdigones;//El inicio del lote 2 será variable y controlará tambien el final del 1. lote
+
+                //Si se ha disparado 
+                if (scene.getObjectByName( "perdigon0") != undefined || scene.getObjectByName( "perdigon" + String(num_perdigones)) != undefined) {
+                    if (disparo1 && !disparo2) {
+                        inicio = lote_perdigon_1;
+                        fin = lote_perdigon_2;
+                    }else if(disparo1 && disparo2){
+                        inicio = lote_perdigon_1;
+                        fin = lote_perdigon_2*2;
+                    }else if (!disparo1 && disparo2){
+                        inicio = lote_perdigon_2;
+                        fin = lote_perdigon_2*2;
+                    }
+                    //Se coge cada perdigon por separado
+                    for (var i = fin; i >= inicio; i--) {
                         var perdigon = scene.getObjectByName("perdigon" + String(i));
                         //Si ese perdigon existe, y no ha sido eliminado.
                         if (perdigon != undefined){
